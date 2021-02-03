@@ -25,3 +25,4 @@ python -m stacked_capsule_autoencoders.eval_mnist_model\
   --colorize_templates=True\
   --use_alpha_channel=False\
   "$@"
+

@@ -16,7 +16,6 @@
 set -e
 set -x
 
-source stacked_capsule_autoencoders/setup_virtualenv.sh
 python -m stacked_capsule_autoencoders.eval_mnist_model\
   --snapshot=stacked_capsule_autoencoders/checkpoints/mnist/model.ckpt-300001\
   --canvas_size=40\
@@ -31,4 +30,6 @@ python -m stacked_capsule_autoencoders.eval_mnist_model\
   --prior_within_example_sparsity_weight=2.\
   --color_nonlin='sigmoid'\
   --template_nonlin='sigmoid'\
+  "$@"
+python -m stacked_capsule_autoencoders.eval_mnist_model --snapshot=stacked_capsule_autoencoders/checkpoints/mnist/model.ckpt-300001 --canvas_size=40\ --n_part_caps=40 --n_obj_caps=32 --colorize_templates=True --use_alpha_channel=True --posterior_between_example_sparsity_weight=0.2 --posterior_within_example_sparsity_weight=0.7 --prior_between_example_sparsity_weight=0.35 --prior_within_example_constant=4.3 --prior_within_example_sparsity_weight=2. --color_nonlin='sigmoid' --template_nonlin='sigmoid'
   "$@"

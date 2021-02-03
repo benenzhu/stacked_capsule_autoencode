@@ -40,10 +40,10 @@ flags.DEFINE_string('dataset', 'mnist', 'Choose from: {mnist, constellation.}')
 flags.DEFINE_string('model', 'scae', 'Choose from {scae, constellation}.')
 
 
-flags.DEFINE_string('name', None, '')
+flags.DEFINE_string('name', 'mnist', '')
 flags.mark_flag_as_required('name')
 
-flags.DEFINE_string('logdir', 'stacked_capsule_autoencoders/checkpoints/{name}',
+flags.DEFINE_string('logdir', '../gdrive/stacked_capsule_autoencoders/checkpoints/{name}',
                     'Log and checkpoint directory for the experiment.')
 
 flags.DEFINE_float('grad_value_clip', 0., '')
@@ -109,6 +109,7 @@ def main(_=None):
     # Optimisation target
     validset = tools.maybe_convert_dataset(validset)
     trainset = tools.maybe_convert_dataset(trainset)
+
     target, gvs = model.make_target(trainset, opt)
 
     if gvs is None:
@@ -219,6 +220,7 @@ if __name__ == '__main__':
   try:
     logging.set_verbosity(logging.INFO)
     tf.app.run()
+  ## 每次把pdb调试调出来就是因为 google的这个模板
   except Exception as err:  # pylint: disable=broad-except
     FLAGS = flags.FLAGS
 
