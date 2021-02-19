@@ -66,7 +66,7 @@ def get(config):
   """Builds the model."""
 
   if config.model == 'scae':
-    # 直接build了model了么?
+    # !!!!!!!!!! 核心 构造 model
     model = make_scae(config)
 
   elif config.model == 'constellation':
@@ -77,7 +77,7 @@ def get(config):
 
   lr = config.lr
   if config.use_lr_schedule:
-    # 这个 get_or_create_global_step 挺有用的
+    # 这个 get_or_create_global_step 挺有用的 可以get到当前global step, 这里采用训练到 300,001步好像
     global_step = tf.train.get_or_create_global_step()
     # 动态调整学习率
     lr = tf.train.exponential_decay(
@@ -99,10 +99,11 @@ def make_scae(config):
   """Builds the SCAE."""
   # 返回是 model 应该是整个的要训练的model了吧
   # 这个好像是要transform 训练集
+  # canvas & template size 都有什么用呢 在这里?
   img_size = [config.canvas_size] * 2
   template_size = [config.template_size] * 2
 
-  # 这个只是encoder的一部分, 用的是卷积,直接就是4个卷积模块了 padding可以自动 那snt还不错
+  # 这个只是part encoder的一部分, 用的是卷积,直接就是4个卷积层了 padding可以自动, snt NB!!
   cnn_encoder = snt.nets.ConvNet2D(
       output_channels=[128] * 4,
       kernel_shapes=[3],
@@ -110,7 +111,8 @@ def make_scae(config):
       paddings=[snt.VALID],
       activate_final=True)
 
-  # 这个好像有点难啊,
+  # !!! 挺难的 ,构造 part encoder  其中有:
+    #
   part_encoder = primary.CapsuleImageEncoder(
       cnn_encoder,
       config.n_part_caps,

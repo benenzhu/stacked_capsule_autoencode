@@ -39,3 +39,7 @@ python -m stacked_capsule_autoencoders.train\
   --color_nonlin='sigmoid'\
   --template_nonlin='sigmoid'\
   "$@"
+
+
+
+  --name=mnist --model=scae --dataset=mnist --max_train_steps=300000 --batch_size=128 --lr=3e-5 --use_lr_schedule=True --canvas_size=40 --n_part_caps=40 --n_obj_caps=32 --colorize_templates=True --use_alpha_channel=True --posterior_between_example_sparsity_weight=0.2 --posterior_within_example_sparsity_weight=0.7 --prior_between_example_sparsity_weight=0.35 --prior_within_example_constant=4.3 --prior_within_example_sparsity_weight=2. --color_nonlin='sigmoid' --template_nonlin='sigmoid'

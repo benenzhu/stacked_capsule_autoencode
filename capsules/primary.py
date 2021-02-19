@@ -52,67 +52,69 @@ class CapsuleImageEncoder(snt.AbstractModule):
                **encoder_kwargs):
 
     super(CapsuleImageEncoder, self).__init__()
-    self._encoder = encoder
-    self._n_caps = n_caps
-    self._n_caps_dims = n_caps_dims
-    self._n_features = n_features
-    self._noise_scale = noise_scale
-    self._similarity_transform = similarity_transform
-    self._encoder_type = encoder_type
+    self._encoder = encoder # cnn_encoder 那个4层的
+    self._n_caps = n_caps # config.n_part_caps,
+    self._n_caps_dims = n_caps_dims # config.n_part_caps_dims,
+    self._n_features = n_features #  config.n_part_special_features,
+    self._noise_scale = noise_scale # 4.0
+    self._similarity_transform = similarity_transform # False
+    self._encoder_type = encoder_type #'conv_att'
     self._encoder_kwargs = dict(
         n_layers=2, n_heads=4, n_dims=32, layer_norm=False)
     self._encoder_kwargs.update(encoder_kwargs)
 
   def _build(self, x):
-    batch_size = x.shape[0]
-    img_embedding = self._encoder(x)
-
-    splits = [self._n_caps_dims, self._n_features, 1]  # 1 for presence
-    n_dims = sum(splits)
+    batch_size = x.shape[0] # x.shape=[128,40,40,1]
+    img_embedding = self._encoder(x) # cnn_encoder对输入进行 embedding
+              # img_embedding.shape=[128,5,5,128]
+    splits = [self._n_caps_dims, self._n_features, 1]  # 1 for presence #[6,16,1]
+    n_dims = sum(splits) # 由 caps_dim + feature_dim + presence 组成 =25
 
     if self._encoder_type == 'linear':
-      n_outputs = self._n_caps * n_dims
+      ## 在 mnist 中 _n_caps 用的是 40
+      n_outputs = self._n_caps * n_dims # 出来的维度
 
-      h = snt.BatchFlatten()(img_embedding)
-      h = snt.Linear(n_outputs)(h)
+      h = snt.BatchFlatten()(img_embedding)  #debug 一下这个flatten 为啥要写成这样子?
+      h = snt.Linear(n_outputs)(h) # h 通过一下这个linear 就是说的那个 MLP 吧
 
     else:
-      h = snt.AddBias(bias_dims=[1, 2, 3])(img_embedding)
+      h = snt.AddBias(bias_dims=[1, 2, 3])(img_embedding) #所有维度都加上 bias
 
       if self._encoder_type == 'conv':
         h = snt.Conv2D(n_dims * self._n_caps, 1, 1)(h)
         h = tf.reduce_mean(h, (1, 2))
         h = tf.reshape(h, [batch_size, self._n_caps, n_dims])
 
-      elif self._encoder_type == 'conv_att':
-        h = snt.Conv2D(n_dims * self._n_caps + self._n_caps, 1, 1)(h)
-        h = snt.MergeDims(1, 2)(h)
-        h, a = tf.split(h, [n_dims * self._n_caps, self._n_caps], -1)
+      elif self._encoder_type == 'conv_att': # 选择这个
+        h = snt.Conv2D(n_dims * self._n_caps + self._n_caps, 1, 1)(h) # conv 最后多了个 _n_caps  最后多一个输出 #(128,5,5,960)
+        h = snt.MergeDims(1, 2)(h) # 合并h 第一二维的数据 #(128,25,960)
+        h, a = tf.split(h, [n_dims * self._n_caps, self._n_caps], -1) #从最后一维分开 对应上面多一个 #(128,25,920) (128,25,40)
 
-        h = tf.reshape(h, [batch_size, -1, n_dims, self._n_caps])
-        a = tf.nn.softmax(a, 1)
-        a = tf.reshape(a, [batch_size, -1, 1, self._n_caps])
-        h = tf.reduce_sum(h * a, 1)
+        h = tf.reshape(h, [batch_size, -1, n_dims, self._n_caps]) #(128,25,23,40)
+        a = tf.nn.softmax(a, 1)  # presence? ?啥意思呢? (128,25,40)  25好像是出来的 5*5的卷积, 合并起来 然后求softmax
+        a = tf.reshape(a, [batch_size, -1, 1, self._n_caps]) #(128,25,1,40)
+        h = tf.reduce_sum(h * a, 1) #(128,23,40) 真的是概率 乘一下 然后加起来啊
 
       else:
         raise ValueError('Invalid encoder type="{}".'.format(
             self._encoder_type))
 
-    h = tf.reshape(h, [batch_size, self._n_caps, n_dims])
+    h = tf.reshape(h, [batch_size, self._n_caps, n_dims]) #(128,40,23) ??
+    # 我有点不理解为啥前面要写那么复杂啊...
+    pose, feature, pres_logit = tf.split(h, splits, -1) # important !!!!!!! 直接出来结果了 #(128,40,6) (128,40,16) (128,40,1)
 
-    pose, feature, pres_logit = tf.split(h, splits, -1)
     if self._n_features == 0:
       feature = None
 
-    pres_logit = tf.squeeze(pres_logit, -1)
+    pres_logit = tf.squeeze(pres_logit, -1) # 把最后一维压缩掉 (128,40)
     if self._noise_scale > 0.:
       pres_logit += ((tf.random.uniform(pres_logit.shape) - .5)
-                     * self._noise_scale)
+                     * self._noise_scale) # 加上一个随机的噪声? 原来的数值有多大呢? 就要加 0.5 均值的噪声啊
 
 
-    pres = tf.nn.sigmoid(pres_logit)
-    pose = math_ops.geometric_transform(pose, self._similarity_transform)
-    return self.OutputTuple(pose, feature, pres, pres_logit, img_embedding)
+    pres = tf.nn.sigmoid(pres_logit) # (128,40)
+    pose = math_ops.geometric_transform(pose, self._similarity_transform) # (128,40,6) 不变,  看看里面干了点啥?
+    return self.OutputTuple(pose, feature, pres, pres_logit, img_embedding) # 返回这样的 named Tuple 好像多了一个维度
 
 
 def choose_nonlinearity(name):

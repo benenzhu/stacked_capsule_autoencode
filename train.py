@@ -108,6 +108,7 @@ def main(_=None):
   # Build the graph
   with tf.Graph().as_default():
 
+    # !!!!! 构造 model 是这里最重要的部分
     model_dict = model_config.get(FLAGS)
     data_dict = data_config.get(FLAGS)
 

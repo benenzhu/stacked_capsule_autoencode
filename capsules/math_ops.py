@@ -99,9 +99,9 @@ def apply_transform(transform, tensor=None, affine=True):
 def geometric_transform(pose_tensor, similarity=False, nonlinear=True,
                         as_matrix=False):
   """Convers paramer tensor into an affine or similarity transform.
-
+  好像就是进行三维的坐标变换吧
   Args:
-    pose_tensor: [..., 6] tensor.
+    pose_tensor: [..., 6] tensor. (128,40,6)
     similarity: bool.
     nonlinear: bool; applies nonlinearities to pose params if True.
     as_matrix: bool; convers the transform to a matrix if True.
@@ -109,23 +109,24 @@ def geometric_transform(pose_tensor, similarity=False, nonlinear=True,
   Returns:
     [..., 3, 3] tensor if `as_matrix` else [..., 6] tensor.
   """
-
+  # 把 pose tensor 给分解开来 怎么用看后面 pose_tensor 是一个(128,40,6) 的, 分开成 (128,40,1)的六个
   scale_x, scale_y, theta, shear, trans_x, trans_y = tf.split(
-      pose_tensor, 6, -1)
-
-  if nonlinear:
-    scale_x, scale_y = (tf.nn.sigmoid(i) + 1e-2
+      pose_tensor, 6, -1) ## (128,40,1) *6  也就是说 (B, part_number, 1)
+  # scale 缩放, theta 旋转
+  # 参考这里的 https://blog.csdn.net/frozenshore/article/details/50283583
+  if nonlinear: # True
+    scale_x, scale_y = (tf.nn.sigmoid(i) + 1e-2 # 每个都要过一下 sigmoid
                         for i in (scale_x, scale_y))
 
     trans_x, trans_y, shear = (
-        tf.nn.tanh(i * 5.) for i in (trans_x, trans_y, shear))
+        tf.nn.tanh(i * 5.) for i in (trans_x, trans_y, shear)) #其他的过tanh
 
-    theta *= 2. * math.pi
+    theta *= 2. * math.pi # theta去乘以 2 pi
 
   else:
     scale_x, scale_y = (abs(i) + 1e-2 for i in (scale_x, scale_y))
 
-  c, s = tf.cos(theta), tf.sin(theta)
+  c, s = tf.cos(theta), tf.sin(theta) # theta就是角度 直接乘以相应的角度 进行旋转
 
   if similarity:
     scale = scale_x
