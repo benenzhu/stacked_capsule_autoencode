@@ -1,23 +1,9 @@
-# coding=utf-8
-# Copyright 2019 The Google Research Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 r"""Training loop."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
+import numpy as np
+np.set_printoptions(threshold=np.inf)
 import os
 import pdb
 import shutil
@@ -56,7 +42,7 @@ flags.DEFINE_float('grad_norm_clip', 0., '')
 flags.DEFINE_float('ema', .9, 'Exponential moving average weight for smoothing '
                    'reported results.')
 
-flags.DEFINE_integer('run_updates_every', 10, '')
+flags.DEFINE_integer('run_updates_every', 1, '')
 flags.DEFINE_boolean('global_ema_update', True, '')
 
 # train 300K 步 用的好像是global step
@@ -67,15 +53,15 @@ flags.DEFINE_integer('snapshot_secs', 3600, '')
 flags.DEFINE_integer('snapshot_steps', 0, '')
 flags.DEFINE_integer('snapshots_to_keep', 5, '')
 # 这个应该是tensorboard的summary吧
-flags.DEFINE_integer('summary_steps', 500, '')
+flags.DEFINE_integer('summary_steps', 1, '')
 
 # 这个可以改小一点, 不过得看看loss是不是算的 test loss 要不然有性能损失
-flags.DEFINE_integer('report_loss_steps', 500, '')
+flags.DEFINE_integer('report_loss_steps', 1, '')
 
 # 哪里进行了 plot?
-flags.DEFINE_boolean('plot', False, 'Produces intermediate results plots '
+flags.DEFINE_boolean('plot', True, 'Produces intermediate results plots '
                      'if True.')
-flags.DEFINE_integer('plot_steps', 1000, '')
+flags.DEFINE_integer('plot_steps', 1, '')
 
 # overwrite 一定要 False 决定是否吧checkpoint 进行重写
 flags.DEFINE_boolean('overwrite', False, 'Overwrites any existing run of the '
@@ -108,8 +94,9 @@ def main(_=None):
   # Build the graph
   with tf.Graph().as_default():
 
-    # !!!!! 构造 model 是这里最重要的部分
+    # //todo !!!!! 构造 model 是这里最重要的部分
     model_dict = model_config.get(FLAGS)
+    # //todo 构造 data 还没看
     data_dict = data_config.get(FLAGS)
 
     lr = model_dict.lr
@@ -128,6 +115,7 @@ def main(_=None):
     validset = tools.maybe_convert_dataset(validset)
     trainset = tools.maybe_convert_dataset(trainset)
 
+    # //todo 总结一下 这是在干嘛?
     target, gvs = model.make_target(trainset, opt)
 
     if gvs is None:

@@ -163,9 +163,9 @@ class ImageAutoencoder(Model):
         return data.get(self._label_key, None)
 
     def _build(self, data):
-
-        input_x = self._img(data, False)
-        target_x = self._img(data, prep=self._prep)
+        #!!!!! important
+        input_x = self._img(data, False) # [128,40,40,1]
+        target_x = self._img(data, prep=self._prep) #same
         batch_size = int(input_x.shape[0])
 
         # input 过 part encoder
@@ -304,18 +304,21 @@ class ImageAutoencoder(Model):
             num_classes=self._n_classes,
             within_example_constant=self._prior_within_example_constant)
 
+
         label = self._label(data)
         if label is not None:
-            res.posterior_cls_xe, res.posterior_cls_acc = probe.classification_probe(
+            res.posterior_cls_xe, res.posterior_cls_acc,logits = probe.classification_probe(
                 mass_explained_by_capsule,
                 label,
                 self._n_classes,
                 labeled=data.get('labeled', None))
-            res.prior_cls_xe, res.prior_cls_acc = probe.classification_probe(
+            res.prior_cls_xe, res.prior_cls_acc,logits2 = probe.classification_probe(
                 res.caps_presence_prob,
                 label,
                 self._n_classes,
                 labeled=data.get('labeled', None))
+            res.logits=logits
+            res.logits2=logits2
 
         res.best_cls_acc = tf.maximum(res.prior_cls_acc, res.posterior_cls_acc)
 

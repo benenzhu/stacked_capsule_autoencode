@@ -1,3 +1,4 @@
+
 # coding=utf-8
 # Copyright 2019 The Google Research Authors.
 #
@@ -19,7 +20,8 @@ from __future__ import absolute_import
 from __future__ import division
 
 from __future__ import print_function
-
+import numpy as np
+np.set_printoptions(threshold=np.inf)
 import sonnet as snt
 import tensorflow as tf
 
@@ -28,7 +30,10 @@ def classification_probe(features, labels, n_classes, labeled=None):
   """Classification probe with stopped gradient on features."""
 
   def _classification_probe(features):
+    import numpy as np
+    np.set_printoptions(threshold=np.inf)
     logits = snt.Linear(n_classes)(tf.stop_gradient(features))
+    logits=tf.Print(logits,[tf.reduce_max(tf.nn.softmax(logits,axis=1),axis=1)],message="logits")
     xe = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits,
                                                         labels=labels)
     if labeled is not None:
@@ -36,6 +41,10 @@ def classification_probe(features, labels, n_classes, labeled=None):
     xe = tf.reduce_mean(xe)
     acc = tf.reduce_mean(tf.to_float(tf.equal(tf.argmax(logits, axis=1),
                                               labels)))
-    return xe, acc
+    log = tf.nn.softmax(logits, axis=1)
+    prob = tf.reduce_max(log, reduction_indices=[1])
+    prob=tf.Print(prob,[prob],message="logits")
+    prob=prob+0.000000001
+    return xe, acc,prob
 
   return snt.Module(_classification_probe)(features)

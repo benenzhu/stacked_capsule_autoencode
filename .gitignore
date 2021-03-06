@@ -1,2 +1,3 @@
 
 *.pyc
+gdrive/MyDrive/stacked_capsule_autoencoders/checkpoints/mnist/*

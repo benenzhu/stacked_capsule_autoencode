@@ -1,7 +1,7 @@
-absl_py>=0.8.1
-imageio>=2.6.1
-matplotlib>=3.0.3
-monty>=3.0.2
+absl_py==0.8.1
+imageio==2.6.1
+matplotlib==3.0.3
+monty==3.0.2
 numpy>=1.16.2
 Pillow>=6.2.1
 scikit_learn>=0.20.4
